@@ -61,7 +61,7 @@ ASR runs on `onnxruntime-gpu` (NVIDIA/CPU on Win/Linux) or `onnxruntime` (macOS)
 
 ## Links
 
-- **App:** [timoncool/dub-studio](https://github.com/timoncool/dub-studio) · [Changelog](https://github.com/timoncool/dub-studio/blob/master/CHANGELOG.md)
+- **App:** [timoncool/dub-studio](https://github.com/timoncool/dub-studio) · [Releases](https://github.com/timoncool/dub-studio/releases)
 - **Model stack:** [Parakeet-TDT](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) ASR · Gemma-4 (MT + vision) · [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) · NVIDIA Sortformer diarization
 - **Pinokio:** [pinokio.co](https://pinokio.co)
 
