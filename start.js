@@ -31,8 +31,11 @@ module.exports = async (kernel) => {
             PATH: ["{{path.resolve(cwd, 'app/ffmpeg')}}"]
           },
           // single-worker FastAPI; it serves frontend/dist same-origin. First run downloads the models.
+          // Force app/ffmpeg (BtbN libass build) to the FRONT of PATH in the already-activated shell, right before
+          // uvicorn: env.PATH alone loses because Pinokio re-prepends conda/bundled paths after init_env, so the
+          // engine's bare `ffmpeg` was resolving to Pinokio's bundled no-libass ffmpeg and caption burn failed.
           message: [
-            `python -m uvicorn backend.app:app --host 127.0.0.1 --port ${port}`
+            `{{platform === 'win32' ? 'set "PATH=' + path.resolve(cwd, 'app/ffmpeg') + ';%PATH%" && ' : 'export PATH="' + path.resolve(cwd, 'app/ffmpeg') + ':$PATH" && '}}python -m uvicorn backend.app:app --host 127.0.0.1 --port ${port}`
           ],
           on: [{
             event: "/(https?:\\/\\/[0-9.]+:[0-9]+)/",   // capture "http://127.0.0.1:<port>" from the uvicorn banner
