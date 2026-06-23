@@ -63,8 +63,7 @@ module.exports = {
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu" }
     },
 
-    // 7) Qwen3-TTS engine (REQUIRED, cross-platform). The OPTIONAL Triton combo kernels come later and are
-    //    guarded, so their git build over a flaky/VPN connection can never abort the core install.
+    // 7) Qwen3-TTS engine (REQUIRED, cross-platform). The Triton combo kernels (also required on NVIDIA) come later.
     {
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install faster-qwen3-tts==0.2.6 qwen-tts==0.1.1" }
@@ -87,14 +86,16 @@ module.exports = {
       method: "shell.run",
       params: { path: "app/frontend", message: ["npm install --no-audit --no-fund", "npm run build"] }
     },
-    // 10) Qwen3-TTS Triton combo kernels — OPTIONAL (NVIDIA only). Faster TTS; engine falls back to bnb-NF4
-    //     without it. Fully non-fatal (BOTH commands guarded) — a git build hiccup must never break the install.
+    // 10) Qwen3-TTS Triton combo kernels — REQUIRED on NVIDIA. dub-engine/tts.py HARD-imports qwen3_tts_triton
+    //     (a missing install RAISES at dub time — there is NO bf16 fallback). Build it exactly like the portable
+    //     installer: hatchling+editables backend, then `python -m pip` — `uv pip` rejects --ignore-requires-python,
+    //     which we need because the package tags 3.12 yet runs fine on our 3.11. NOT guarded: fail LOUD if it can't build.
     {
       when: "{{gpu === 'nvidia' && platform !== 'darwin'}}",
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: [
-        "uv pip install hatchling editables {{platform === 'win32' ? '|| ver>nul' : '|| true'}}",
-        "uv pip install --no-deps --no-build-isolation --ignore-requires-python git+https://github.com/newgrit1004/qwen3-tts-triton {{platform === 'win32' ? '|| ver>nul' : '|| true'}}"
+        "uv pip install hatchling editables pip",
+        "python -m pip install --no-deps --no-build-isolation --ignore-requires-python git+https://github.com/newgrit1004/qwen3-tts-triton"
       ] }
     },
 
@@ -117,11 +118,11 @@ module.exports = {
       params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'get_voices.py')}} {{platform === 'win32' ? '|| ver>nul' : '|| true'}}" }
     },
 
-    // 13) verify the install is usable — runs LAST, AFTER every optional extra, so an aborting required step can
-    //     never silently skip voices / sortformer / triton again. Fails LOUD if the SPA or core stack is missing.
+    // 13) verify the install is usable — runs LAST. Fails LOUD if the SPA or any REQUIRED import is missing,
+    //     including the exact qwen3_tts_triton import that dub-engine/tts.py does on NVIDIA (hard dep, not optional).
     {
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch\"" }
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch{{gpu === 'nvidia' && platform !== 'darwin' ? '; from qwen3_tts_triton.models.patching import apply_triton_kernels, find_patchable_model' : ''}}\"" }
     },
 
     // done
