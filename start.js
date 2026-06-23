@@ -24,18 +24,15 @@ module.exports = async (kernel) => {
             XDG_CACHE_HOME: "{{path.resolve(cwd, 'app/cache')}}",
             DUBENGINE_VOICES: "{{path.resolve(cwd, 'app/voices')}}",
             // multi-speaker diarization sub-venv (NVIDIA); a missing path just degrades to single-speaker
-            DUBENGINE_SORTFORMER_PY: "{{platform === 'win32' ? path.resolve(cwd, 'app/.venv-sortformer/Scripts/python.exe') : path.resolve(cwd, 'app/.venv-sortformer/bin/python')}}",
-            // FFmpeg WITH libass lives in app/ffmpeg (get_ffmpeg.py) — put it FIRST on PATH so the engine's bare
-            // `ffmpeg` resolves to the libass build, not Pinokio's bundled ffmpeg (no libass -> caption burn fails).
-            // Pinokio requires PATH as an ARRAY of extra dirs and merges the system PATH in itself (init_env).
-            PATH: ["{{path.resolve(cwd, 'app/ffmpeg')}}"]
+            DUBENGINE_SORTFORMER_PY: "{{platform === 'win32' ? path.resolve(cwd, 'app/.venv-sortformer/Scripts/python.exe') : path.resolve(cwd, 'app/.venv-sortformer/bin/python')}}"
           },
           // single-worker FastAPI; it serves frontend/dist same-origin. First run downloads the models.
-          // Force app/ffmpeg (BtbN libass build) to the FRONT of PATH in the already-activated shell, right before
-          // uvicorn: env.PATH alone loses because Pinokio re-prepends conda/bundled paths after init_env, so the
-          // engine's bare `ffmpeg` was resolving to Pinokio's bundled no-libass ffmpeg and caption burn failed.
+          // Launch via serve.py (a launcher file — the app repo is untouched): it prepends app/ffmpeg (the bundled
+          // libass FFmpeg) to PATH *inside the Python process* before uvicorn, so dub-engine's subprocess `ffmpeg`
+          // resolves to the libass build. In-process is deterministic; shell PATH loses to conda/venv activation,
+          // and a cmd `set "PATH=...;%PATH%"` expands %PATH% at parse time (before activation) and breaks python.
           message: [
-            `{{platform === 'win32' ? 'set "PATH=' + path.resolve(cwd, 'app/ffmpeg') + ';%PATH%" && ' : 'export PATH="' + path.resolve(cwd, 'app/ffmpeg') + ':$PATH" && '}}python -m uvicorn backend.app:app --host 127.0.0.1 --port ${port}`
+            `python {{path.resolve(cwd, 'serve.py')}} ${port}`
           ],
           on: [{
             event: "/(https?:\\/\\/[0-9.]+:[0-9]+)/",   // capture "http://127.0.0.1:<port>" from the uvicorn banner
