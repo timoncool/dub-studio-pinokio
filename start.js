@@ -26,8 +26,9 @@ module.exports = async (kernel) => {
             // multi-speaker diarization sub-venv (NVIDIA); a missing path just degrades to single-speaker
             DUBENGINE_SORTFORMER_PY: "{{platform === 'win32' ? path.resolve(cwd, 'app/.venv-sortformer/Scripts/python.exe') : path.resolve(cwd, 'app/.venv-sortformer/bin/python')}}",
             // FFmpeg WITH libass lives in app/ffmpeg (get_ffmpeg.py) — put it FIRST on PATH so the engine's bare
-            // `ffmpeg` resolves to the libass build, not Pinokio's bundled ffmpeg (no libass -> caption burn fails)
-            PATH: "{{path.resolve(cwd, 'app/ffmpeg')}}{{platform === 'win32' ? ';' : ':'}}{{envs.PATH}}"
+            // `ffmpeg` resolves to the libass build, not Pinokio's bundled ffmpeg (no libass -> caption burn fails).
+            // Pinokio requires PATH as an ARRAY of extra dirs and merges the system PATH in itself (init_env).
+            PATH: ["{{path.resolve(cwd, 'app/ffmpeg')}}"]
           },
           // single-worker FastAPI; it serves frontend/dist same-origin. First run downloads the models.
           message: [
