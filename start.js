@@ -24,9 +24,7 @@ module.exports = async (kernel) => {
             XDG_CACHE_HOME: "{{path.resolve(cwd, 'app/cache')}}",
             DUBENGINE_VOICES: "{{path.resolve(cwd, 'app/voices')}}",
             // multi-speaker diarization sub-venv (NVIDIA); a missing path just degrades to single-speaker
-            DUBENGINE_SORTFORMER_PY: "{{platform === 'win32' ? path.resolve(cwd, 'app/.venv-sortformer/Scripts/python.exe') : path.resolve(cwd, 'app/.venv-sortformer/bin/python')}}",
-            TEMP: "{{path.resolve(cwd, 'app/temp')}}",
-            TMP: "{{path.resolve(cwd, 'app/temp')}}"
+            DUBENGINE_SORTFORMER_PY: "{{platform === 'win32' ? path.resolve(cwd, 'app/.venv-sortformer/Scripts/python.exe') : path.resolve(cwd, 'app/.venv-sortformer/bin/python')}}"
           },
           // single-worker FastAPI; it serves frontend/dist same-origin. First run downloads the models.
           message: [

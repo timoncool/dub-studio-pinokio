@@ -62,18 +62,11 @@ module.exports = {
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu" }
     },
 
-    // 7) Qwen3-TTS engine (REQUIRED, cross-platform) + the combo Triton kernels (NVIDIA only, optional/non-fatal)
+    // 7) Qwen3-TTS engine (REQUIRED, cross-platform). The OPTIONAL Triton combo kernels are installed LAST
+    //    (after verify), so their git build over a flaky/VPN connection can never abort the core install.
     {
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install faster-qwen3-tts==0.2.6 qwen-tts==0.1.1" }
-    },
-    {
-      when: "{{gpu === 'nvidia' && platform !== 'darwin'}}",
-      method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: [
-        "uv pip install hatchling editables",
-        "uv pip install --no-deps --no-build-isolation --ignore-requires-python git+https://github.com/newgrit1004/qwen3-tts-triton {{platform === 'win32' ? '|| ver>nul' : '|| true'}}"
-      ] }
     },
 
     // 8) dub-engine (bundled in the repo) — put it on the env's import path via a .pth file.
@@ -97,6 +90,17 @@ module.exports = {
     {
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch\"" }
+    },
+
+    // 12) Qwen3-TTS Triton combo kernels — OPTIONAL (NVIDIA only). Faster TTS; engine falls back to bnb-NF4
+    //     without it. Fully non-fatal (BOTH commands guarded) — a git build hiccup must never break the install.
+    {
+      when: "{{gpu === 'nvidia' && platform !== 'darwin'}}",
+      method: "shell.run",
+      params: { venv: "env", venv_python: "3.11", path: "app", message: [
+        "uv pip install hatchling editables {{platform === 'win32' ? '|| ver>nul' : '|| true'}}",
+        "uv pip install --no-deps --no-build-isolation --ignore-requires-python git+https://github.com/newgrit1004/qwen3-tts-triton {{platform === 'win32' ? '|| ver>nul' : '|| true'}}"
+      ] }
     },
 
     // 8b) Sortformer NeMo sub-venv — multi-speaker diarization (NVIDIA Win/Linux only, optional / fully non-fatal).
