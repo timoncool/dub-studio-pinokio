@@ -36,7 +36,7 @@ module.exports = {
     {
       when: "{{platform === 'darwin'}}",
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install numpy==2.4.6 scipy==1.17.1 soundfile==0.14.0 librosa==0.11.0 'pydantic>=2,<3' onnx-asr==0.11.0 onnxruntime==1.26.0 transformers==4.57.3 accelerate==1.12.0 sentencepiece==0.2.1 safetensors==0.8.0 einops==0.8.2 torchdiffeq==0.2.5 omegaconf==2.3.1 audio-separator==0.44.2 rapidocr==3.8.4 opencv-python==4.13.0.92 pillow==12.2.0 Resemblyzer==0.1.4 huggingface_hub==0.36.2 hf-xet==1.5.1 ffmpeg-python==0.2.0" }
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install numpy==2.4.6 scipy==1.17.1 soundfile==0.14.0 librosa==0.11.0 pyloudnorm==0.1.1 'pydantic>=2,<3' onnx-asr==0.11.0 onnxruntime==1.26.0 transformers==4.57.3 accelerate==1.12.0 sentencepiece==0.2.1 safetensors==0.8.0 einops==0.8.2 torchdiffeq==0.2.5 omegaconf==2.3.1 audio-separator==0.44.2 rapidocr==3.8.4 opencv-python==4.13.0.92 pillow==12.2.0 Resemblyzer==0.1.4 huggingface_hub==0.36.2 hf-xet==1.5.1 ffmpeg-python==0.2.0" }
     },
 
     // 6) llama-cpp-python (Gemma MT + vision) — REQUIRED. Per-platform build:
