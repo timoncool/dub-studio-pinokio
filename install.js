@@ -82,6 +82,18 @@ module.exports = {
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install -e dub-engine --no-deps" }
     },
 
+    // 9) build the React SPA — REQUIRED (FastAPI serves frontend/dist same-origin). Done BEFORE the optional
+    //    Sortformer / voice-pack steps so a hiccup there can never leave the app without its UI (the "/" 404).
+    {
+      method: "shell.run",
+      params: { path: "app/frontend", message: ["npm install --no-audit --no-fund", "npm run build"] }
+    },
+    // 10) verify the install is actually usable: the SPA built AND the core stack imports — else fail LOUD.
+    {
+      method: "shell.run",
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch\"" }
+    },
+
     // 8b) Sortformer NeMo sub-venv — multi-speaker diarization (NVIDIA Win/Linux only, optional / fully non-fatal).
     //     The pipeline runs without it (single-speaker fallback); start.js points the engine at it when present.
     {
@@ -94,16 +106,11 @@ module.exports = {
       ] }
     },
 
-    // 9) base voice pack -> app/voices
+    // 11) base voice pack -> app/voices (OPTIONAL: clone mode works without it; get_voices.py never aborts,
+    //     and the '|| true' guard means even a hard failure can't break the finished install).
     {
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'get_voices.py')}}" }
-    },
-
-    // 10) build the React SPA (FastAPI serves frontend/dist same-origin — no Node at runtime)
-    {
-      method: "shell.run",
-      params: { path: "app/frontend", message: ["npm install", "npx vite build"] }
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'get_voices.py')}} {{platform === 'win32' ? '|| ver>nul' : '|| true'}}" }
     },
 
     // done
