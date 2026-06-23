@@ -1,0 +1,31 @@
+{
+  "title": "Dub Studio",
+  "description": "Dub & translate any short video — locally, offline. Voice clone / per-speaker cast / voice packs, on-screen text localized in place, subtitle styling, blur-or-solid mask covers, funny re-dub. One process (FastAPI serves the React SPA), 6 UI languages.",
+  "icon": "icon.png",
+  "links": [
+    {
+      "title": "Dub Studio (app)",
+      "links": [
+        { "title": "GitHub repo", "href": "https://github.com/timoncool/dub-studio" },
+        { "title": "Changelog", "href": "https://github.com/timoncool/dub-studio/blob/master/CHANGELOG.md" }
+      ]
+    },
+    {
+      "title": "Author — Nerual Dreming",
+      "links": [
+        { "title": "Telegram", "href": "https://t.me/nerual_dreming" },
+        { "title": "ArtGeneration.me", "href": "https://artgeneration.me" },
+        { "title": "Нейро-Софт (portable AI builds)", "href": "https://t.me/neuroport" },
+        { "title": "Donate (Boosty)", "href": "https://boosty.to/neuro_art" }
+      ]
+    },
+    {
+      "title": "Engine model stack",
+      "links": [
+        { "title": "Parakeet-TDT ASR", "href": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3" },
+        { "title": "Gemma-4 (MT + vision)", "href": "https://huggingface.co/google" },
+        { "title": "Qwen3-TTS", "href": "https://github.com/QwenLM/Qwen3-TTS" }
+      ]
+    }
+  ]
+}
