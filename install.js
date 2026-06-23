@@ -76,10 +76,15 @@ module.exports = {
       ] }
     },
 
-    // 8) dub-engine (bundled in the repo) — editable install
+    // 8) dub-engine (bundled in the repo) — put it on the env's import path via a .pth file.
+    //    NOT `uv pip install -e`: a PEP 660 editable build fetches setuptools through build-isolation,
+    //    which dies on flaky / VPN connections and ABORTS the whole install (that was the "/" 404 root —
+    //    dubengine never registered, so the install stopped before building the SPA). A .pth needs no
+    //    build backend and no network, so it cannot fail.
     {
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install -e dub-engine --no-deps" }
+      params: { venv: "env", venv_python: "3.11", path: "app",
+        message: "python -c \"import sysconfig,os;open(os.path.join(sysconfig.get_paths()['purelib'],'dubengine.pth'),'w').write(os.path.abspath('dub-engine'))\"" }
     },
 
     // 9) build the React SPA — REQUIRED (FastAPI serves frontend/dist same-origin). Done BEFORE the optional
