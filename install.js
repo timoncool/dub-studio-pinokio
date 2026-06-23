@@ -8,10 +8,11 @@ module.exports = {
       params: { message: "git clone https://github.com/timoncool/dub-studio app" }
     },
 
-    // 2) ffmpeg + ffprobe (the engine shells out to them) — cross-platform via conda, on PATH for every Pinokio shell
+    // 2) ffmpeg + ffprobe (the engine shells out to them) — cross-platform via conda, on PATH for every Pinokio shell.
+    //    Triple `||` retry: conda's repodata fetch can hit a transient HTTP-000 on a flaky / VPN connection.
     {
       method: "shell.run",
-      params: { message: "conda install -y -c conda-forge ffmpeg" }
+      params: { message: "conda install -y -c conda-forge ffmpeg || conda install -y -c conda-forge ffmpeg || conda install -y -c conda-forge ffmpeg" }
     },
 
     // 3) torch (+ triton-windows / flash-attn on NVIDIA Windows) — cross-platform, see torch.js
@@ -44,12 +45,12 @@ module.exports = {
     {
       when: "{{gpu === 'nvidia' && platform === 'win32'}}",
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.40-cu128-win-20260608/llama_cpp_python-0.3.40%2Bcu128-cp311-cp311-win_amd64.whl" }
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'fetch.py')}} \"https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.40-cu128-win-20260608/llama_cpp_python-0.3.40%2Bcu128-cp311-cp311-win_amd64.whl\" \"wheels/llama_cpp_python-0.3.40+cu128-cp311-cp311-win_amd64.whl\" && uv pip install \"wheels/llama_cpp_python-0.3.40+cu128-cp311-cp311-win_amd64.whl\"" }
     },
     {
       when: "{{gpu === 'nvidia' && platform === 'linux' && arch !== 'arm64'}}",
       method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.40-cu128-linux-20260607/llama_cpp_python-0.3.40%2Bcu128-cp311-cp311-linux_x86_64.whl" }
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'fetch.py')}} \"https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.40-cu128-linux-20260607/llama_cpp_python-0.3.40%2Bcu128-cp311-cp311-linux_x86_64.whl\" \"wheels/llama_cpp_python-0.3.40+cu128-cp311-cp311-linux_x86_64.whl\" && uv pip install \"wheels/llama_cpp_python-0.3.40+cu128-cp311-cp311-linux_x86_64.whl\"" }
     },
     {
       when: "{{platform === 'darwin' && arch === 'arm64'}}",
@@ -62,8 +63,8 @@ module.exports = {
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu" }
     },
 
-    // 7) Qwen3-TTS engine (REQUIRED, cross-platform). The OPTIONAL Triton combo kernels are installed LAST
-    //    (after verify), so their git build over a flaky/VPN connection can never abort the core install.
+    // 7) Qwen3-TTS engine (REQUIRED, cross-platform). The OPTIONAL Triton combo kernels come later and are
+    //    guarded, so their git build over a flaky/VPN connection can never abort the core install.
     {
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: "uv pip install faster-qwen3-tts==0.2.6 qwen-tts==0.1.1" }
@@ -86,13 +87,7 @@ module.exports = {
       method: "shell.run",
       params: { path: "app/frontend", message: ["npm install --no-audit --no-fund", "npm run build"] }
     },
-    // 10) verify the install is actually usable: the SPA built AND the core stack imports — else fail LOUD.
-    {
-      method: "shell.run",
-      params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch\"" }
-    },
-
-    // 12) Qwen3-TTS Triton combo kernels — OPTIONAL (NVIDIA only). Faster TTS; engine falls back to bnb-NF4
+    // 10) Qwen3-TTS Triton combo kernels — OPTIONAL (NVIDIA only). Faster TTS; engine falls back to bnb-NF4
     //     without it. Fully non-fatal (BOTH commands guarded) — a git build hiccup must never break the install.
     {
       when: "{{gpu === 'nvidia' && platform !== 'darwin'}}",
@@ -103,7 +98,7 @@ module.exports = {
       ] }
     },
 
-    // 8b) Sortformer NeMo sub-venv — multi-speaker diarization (NVIDIA Win/Linux only, optional / fully non-fatal).
+    // 11) Sortformer NeMo sub-venv — multi-speaker diarization (NVIDIA Win/Linux only, optional / fully non-fatal).
     //     The pipeline runs without it (single-speaker fallback); start.js points the engine at it when present.
     {
       when: "{{gpu === 'nvidia' && platform !== 'darwin'}}",
@@ -115,11 +110,18 @@ module.exports = {
       ] }
     },
 
-    // 11) base voice pack -> app/voices (OPTIONAL: clone mode works without it; get_voices.py never aborts,
+    // 12) base voice pack -> app/voices (OPTIONAL: clone mode works without it; get_voices.py never aborts,
     //     and the '|| true' guard means even a hard failure can't break the finished install).
     {
       method: "shell.run",
       params: { venv: "env", venv_python: "3.11", path: "app", message: "python {{path.resolve(cwd, 'get_voices.py')}} {{platform === 'win32' ? '|| ver>nul' : '|| true'}}" }
+    },
+
+    // 13) verify the install is usable — runs LAST, AFTER every optional extra, so an aborting required step can
+    //     never silently skip voices / sortformer / triton again. Fails LOUD if the SPA or core stack is missing.
+    {
+      method: "shell.run",
+      params: { venv: "env", venv_python: "3.11", path: "app", message: "python -c \"import os,sys;sys.exit(0 if os.path.isfile('frontend/dist/index.html') else 'SPA not built: frontend/dist missing - run Install again')\" && python -c \"import dubengine.pipeline,qwen_tts,faster_qwen3_tts,llama_cpp,torch\"" }
     },
 
     // done
