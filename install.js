@@ -8,11 +8,14 @@ module.exports = {
       params: { message: "git clone https://github.com/timoncool/dub-studio app" }
     },
 
-    // 2) ffmpeg + ffprobe (the engine shells out to them) — cross-platform via conda, on PATH for every Pinokio shell.
-    //    Triple `||` retry: conda's repodata fetch can hit a transient HTTP-000 on a flaky / VPN connection.
+    // 2) FFmpeg + ffprobe WITH libass — REQUIRED. The engine shells out to `ffmpeg` to BURN captions, which needs the
+    //    libass `ass` filter. conda's ffmpeg AND Pinokio's bundled ffmpeg are both built WITHOUT libass, so the burn
+    //    fails ("Unknown filter 'ass'" / "No option name"). get_ffmpeg.py installs the BtbN GPL static build (libass
+    //    included) into app/ffmpeg — exactly like the portable installer — and self-verifies the ass filter is present.
+    //    start.js then prepends app/ffmpeg to PATH so the engine's bare `ffmpeg` resolves to this build.
     {
       method: "shell.run",
-      params: { message: "conda install -y -c conda-forge ffmpeg || conda install -y -c conda-forge ffmpeg || conda install -y -c conda-forge ffmpeg" }
+      params: { path: "app", message: "python {{path.resolve(cwd, 'get_ffmpeg.py')}}" }
     },
 
     // 3) torch (+ triton-windows / flash-attn on NVIDIA Windows) — cross-platform, see torch.js
